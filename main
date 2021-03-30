@@ -1,0 +1,71 @@
+from telegram.ext import Updater, MessageHandler, Filters
+from telegram.ext import CallbackContext, CommandHandler, ConversationHandler
+
+
+def start(update, context):
+    update.message.reply_text(
+        "Привет. Пройдите небольшой опрос, пожалуйста!\n"
+        "Вы можете прервать опрос, послав команду /stop.\n"
+        "В каком городе вы живёте?")
+
+    # Число-ключ в словаре states —
+    # втором параметре ConversationHandler'а.
+    return 1
+    # Оно указывает, что дальше на сообщения от этого пользователя
+    # должен отвечать обработчик states[1].
+    # До этого момента обработчиков текстовых сообщений
+    # для этого пользователя не существовало,
+    # поэтому текстовые сообщения игнорировались.
+
+
+# не вызывается
+def first_response(update, context):
+    # Это ответ на первый вопрос.
+    # Мы можем использовать его во втором вопросе.
+    locality = update.message.text
+    update.message.reply_text(
+        "Какая погода в городе {locality}?".format(**locals()))
+    # Следующее текстовое сообщение будет обработано
+    # обработчиком states[2]
+    return 2
+
+
+def second_response(update, context):
+    # Ответ на второй вопрос.
+    # Мы можем его сохранить в базе данных или переслать куда-либо.
+    weather = update.message.text
+    print(weather)
+    update.message.reply_text("Спасибо за участие в опросе! Всего доброго!")
+    return ConversationHandler.END  # Константа, означающая конец диалога.
+    # Все обработчики из states и fallbacks становятся неактивными.
+
+
+def echo(update, context):
+    update.message.reply_text(f'Я получил сообщение {update.message.text}')
+
+
+def stop(update, context):
+    print('st')
+
+
+def main():
+    updater = Updater('1667861363:AAFREVk3MhSDu-Og5gY7orCh9QcP45Pbdm0', use_context=True)
+    dp = updater.dispatcher
+    text_handler = MessageHandler(Filters.text, echo)
+    dp.add_handler(CommandHandler("start", start))
+    dp.add_handler(text_handler)
+    conv_handler = ConversationHandler(
+        entry_points=[CommandHandler('start', start)],
+        states={
+            1: [MessageHandler(Filters.text, first_response)],
+            2: [MessageHandler(Filters.text, second_response)]
+        },
+        fallbacks=[CommandHandler('stop', stop)]
+    )
+    dp.add_handler(conv_handler)
+    updater.start_polling()
+    updater.idle()
+
+
+if __name__ == '__main__':
+    main()
